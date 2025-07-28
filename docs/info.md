@@ -26,11 +26,16 @@ and decodes the returned density signal into Pulse Code Modulation (PCM) words.
 
 | Address | Name  | Access | Description                                                         |
 |---------|-------|--------|---------------------------------------------------------------------|
-| 0x00    | DATA  | R/W    | PDM clock period (0-64)                                             |
-|         |       |        | Number of system clock cycles per PDM clock cycle.                  |
-|         |       |        | For example, to generate a 1 MHz clock signal, set this to 64.      |
-|---------|-------|--------|---------------------------------------------------------------------|
-| 0x04    | DATA  | R      | PCM word                                                            |
+| 0x00    | CLKP  | R/W    | PDM clock period (0-64).                                            |
+| 0x04    | PCMW  | R      | PCM word, result of conversion.                                     |
+
+### CLKP
+Number of system clock cycles per PDM clock cycle.
+For example, to generate a 1 MHz clock signal, set this to 64.
+
+### PCMW
+32-bit signed integer.
+TODO(mastensg): pick final output format.
 
 ## How to test
 
