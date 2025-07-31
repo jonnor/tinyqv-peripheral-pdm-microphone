@@ -31,28 +31,54 @@ module tqvp_jnms_pdm (
     output        user_interrupt  // Dedicated interrupt request for this peripheral
 );
 
-    // Implement a 32-bit read/write register at address 0
-    reg [31:0] example_data;
+    reg [31:0] pdm_ctrl;
+    reg [31:0] pdm_clkp;
+    reg [31:0] pdm_pcmw;
+
+    reg [7:0] pdm_phase;
+    reg       pdm_clk;
+
     always @(posedge clk) begin
         if (!rst_n) begin
-            example_data <= 0;
+            pdm_ctrl <= 0;
+            pdm_clkp <= 0;
+            pdm_pcmw <= 0;
+            pdm_phase <= 0;
+            pdm_clk <= 0;
         end else begin
             if (address == 6'h0) begin
-                if (data_write_n != 2'b11)              example_data[7:0]   <= data_in[7:0];
-                if (data_write_n[1] != data_write_n[0]) example_data[15:8]  <= data_in[15:8];
-                if (data_write_n == 2'b10)              example_data[31:16] <= data_in[31:16];
+                if (data_write_n != 2'b11)              pdm_ctrl[7:0]   <= data_in[7:0];
+                if (data_write_n[1] != data_write_n[0]) pdm_ctrl[15:8]  <= data_in[15:8];
+                if (data_write_n == 2'b10)              pdm_ctrl[31:16] <= data_in[31:16];
+            end
+            if (address == 6'h4) begin
+                if (data_write_n != 2'b11)              pdm_clkp[7:0]   <= data_in[7:0];
+                if (data_write_n[1] != data_write_n[0]) pdm_clkp[15:8]  <= data_in[15:8];
+                if (data_write_n == 2'b10)              pdm_clkp[31:16] <= data_in[31:16];
+            end
+            if (address == 6'h8) begin
+                if (data_write_n != 2'b11)              pdm_pcmw[7:0]   <= data_in[7:0];
+                if (data_write_n[1] != data_write_n[0]) pdm_pcmw[15:8]  <= data_in[15:8];
+                if (data_write_n == 2'b10)              pdm_pcmw[31:16] <= data_in[31:16];
             end
         end
     end
 
     // The bottom 8 bits of the stored data are added to ui_in and output to uo_out.
-    assign uo_out = example_data[7:0] + ui_in;
+    //assign uo_out = example_data[7:0] + ui_in;
+    assign uo_out[1] = pdm_ctrl[0] && pdm_clk;
+
+    always @(posedge clk) begin
+    	    pdm_phase <= pdm_phase<9 ? pdm_phase+1 : 0;
+    	    pdm_clk <= pdm_phase<5;
+    end
 
     // Address 0 reads the example data register.  
     // Address 4 reads ui_in
     // All other addresses read 0.
-    assign data_out = (address == 6'h0) ? example_data :
-                      (address == 6'h4) ? {24'h0, ui_in} :
+    assign data_out = (address == 6'h0) ? pdm_ctrl :
+                      (address == 6'h4) ? pdm_clkp :
+                      (address == 6'h8) ? pdm_pcmw :
                       32'h0;
 
     // All reads complete in 1 clock
