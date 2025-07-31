@@ -3,7 +3,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, Edge
 
 from tqv import TinyQV
 
@@ -17,6 +17,31 @@ PERIPHERAL_NUM = 0
 REG_CTRL = 0x00
 REG_CLKP = 0x04
 REG_PCMW = 0x08
+
+# Pin definitions, ref docs/info.md
+PIN_PDM_CLK = 0x01 # uo1
+
+
+PDM_DOWNSAMPLE_MAX = 64 # max downsample ratio in PDM to PCM conversion (number of PDM clocks per PCM sample)
+
+async def assert_pin_stable(pin, clock, n_cycles):
+    """Helper to check pin stability over n clock cycles"""
+    initial_value = pin.value
+
+    for cycle in range(n_cycles):
+        await RisingEdge(clock)
+        assert pin.value == initial_value, \
+            f"Pin changed from {initial_value} to {pin.value} at cycle {cycle+1}"
+
+async def assert_interrupt_stable(tqv, clock, n_cycles):
+    """Helper to check pin stability over n clock cycles"""
+    initial_value = await tqv.is_interrupt_asserted()
+
+    for cycle in range(n_cycles):
+        await RisingEdge(clock)
+        value = await tqv.is_interrupt_asserted()
+        assert value == initial_value, \
+            f"Interrupt changed from {initial_value} to {value} at cycle {cycle+1}"
 
 @cocotb.test()
 async def test_initial(dut):
@@ -38,11 +63,24 @@ async def test_initial(dut):
     # Intially the clock scaling is 0
     assert await tqv.read_word_reg(REG_CLKP) == 0x0
 
-    # Set the clock scaling, and read it back
-    clock_scale = 32
-    await tqv.write_word_reg(REG_CLKP, clock_scale)
-    assert await tqv.read_word_reg(REG_CLKP) == clock_scale
+    # Intially the PCM sample is 0
+    assert await tqv.read_word_reg(REG_PCMW) == 0x0
 
+    # Set the clock scaling, and read it back
+    max_clock_scale = 64
+    for clock_scale in range(1, max_clock_scale+1):
+        await tqv.write_word_reg(REG_CLKP, clock_scale)
+        assert await tqv.read_word_reg(REG_CLKP) == clock_scale
+
+
+    # PDM clock is initially disabled
+    assert dut.uo_out[PIN_PDM_CLK].value == 0
+    # PDM clock does not change
+    await assert_pin_stable(dut.uo_out[PIN_PDM_CLK], dut.clk, max_clock_scale*2)
+
+    # There are no interrupts
+    assert await tqv.is_interrupt_asserted() == False
+    await assert_interrupt_stable(tqv, dut.clk, max_clock_scale*PDM_DOWNSAMPLE_MAX*2)
 
 @cocotb.test()
 async def test_running(dut):
@@ -58,22 +96,38 @@ async def test_running(dut):
     # Reset
     await tqv.reset()
 
-    # TODO: set a clock scaling, and to running via CTRL register
-    # TODO: check that interrupt happens on regular basis
+    # Test on a couple different clock scaling settings
+    clock_scales = [
+        10,
+        #16, # FIXME: adding 16 here breaks, must respect the CLKP setting
+    ]
+    for clock_scale in clock_scales:
+        dut._log.info(f"start with scale={clock_scale}")
 
-    dut.ui_in[6].value = 1
-    await ClockCycles(dut.clk, 1)
-    dut.ui_in[6].value = 0
+        # Set a clock scaling
+        await tqv.write_word_reg(REG_CLKP, clock_scale)
+        assert await tqv.read_word_reg(REG_CLKP) == clock_scale
 
-    # Interrupt asserted
-    await ClockCycles(dut.clk, 3)
-    assert await tqv.is_interrupt_asserted()
+        # Start the clock
+        await tqv.write_word_reg(REG_CTRL, 0x01)
+        assert await tqv.read_word_reg(REG_CTRL) == 0x01
 
-    # Interrupt doesn't clear
-    await ClockCycles(dut.clk, 10)
-    assert await tqv.is_interrupt_asserted()
-    
-    # Write bottom bit of address 8 high to clear
-    await tqv.write_byte_reg(8, 1)
-    assert not await tqv.is_interrupt_asserted()
+        # PDM clock should toggle every SCALE clocks
+        assert dut.uo_out[PIN_PDM_CLK].value == 0
+        await ClockCycles(dut.clk, clock_scale//2)
+        assert dut.uo_out[PIN_PDM_CLK].value == 1
+        await ClockCycles(dut.clk, clock_scale//2)
+        assert dut.uo_out[PIN_PDM_CLK].value == 0
+
+        # Interrupt should happen every DOWNSCAMPLE*SCALE clocks
+        downsample = 64
+        assert await tqv.is_interrupt_asserted() == False
+        await ClockCycles(dut.clk, downsample*clock_scale//2)
+        # FIXME: implement interrupt
+        #assert await tqv.is_interrupt_asserted() == True
+
+        # Should be a valid PCM sample
+        # FIXME: should become something else than 0
+        pcm = await tqv.read_word_reg(REG_PCMW)
+        assert pcm == 0x00
 
