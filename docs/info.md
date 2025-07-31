@@ -26,8 +26,12 @@ and decodes the returned density signal into Pulse Code Modulation (PCM) words.
 
 | Address | Name  | Access | Description                                                         |
 |---------|-------|--------|---------------------------------------------------------------------|
-| 0x00    | CLKP  | R/W    | PDM clock period (0-64).                                            |
-| 0x04    | PCMW  | R      | PCM word, result of conversion.                                     |
+| 0x00    | CTRL  | R/W    | PDM control.                                                        |
+| 0x04    | CLKP  | R/W    | PDM clock period (0-64).                                            |
+| 0x08    | PCMW  | R      | PCM word, result of conversion.                                     |
+
+### CTRL
+Bit 0: Enable clock generation.
 
 ### CLKP
 Number of system clock cycles per PDM clock cycle.
