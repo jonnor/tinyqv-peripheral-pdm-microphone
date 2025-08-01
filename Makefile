@@ -8,10 +8,10 @@ distclean:
 	rm -rf tt venv
 
 harden:
-	$(ENVIRONMENT) time venv/bin/python tt/tt_tool.py --harden
+	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --harden
 
 png:
-	$(ENVIRONMENT) time venv/bin/python tt/tt_tool.py --create-png
+	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-png
 
 tt:
 	git clone -b ttsky25a https://github.com/TinyTapeout/tt-support-tools tt
