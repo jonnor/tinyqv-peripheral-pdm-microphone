@@ -64,8 +64,8 @@ module tqvp_jnms_pdm (
                 if (data_write_n[1] != data_write_n[0]) pdm_pcmw[15:8]  <= data_in[15:8];
                 if (data_write_n == 2'b10)              pdm_pcmw[31:16] <= data_in[31:16];
             end
-            pdm_phase <= pdm_phase<9 ? pdm_phase+1 : 0;
-            pdm_clk <= pdm_phase<5;
+            pdm_clk   <= pdm_phase   < (pdm_clkp >> 1);
+            pdm_phase <= pdm_phase+1 < pdm_clkp ? pdm_phase+1 : 0;
         end
     end
 
