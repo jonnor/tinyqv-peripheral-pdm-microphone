@@ -109,6 +109,6 @@ module tqvp_jnms_pdm (
     // List all unused inputs to prevent warnings
     // data_read_n is unused as none of our behaviour depends on whether
     // registers are being read.
-    wire _unused = &{data_read_n, 1'b0};
+    wire _unused = &{ui_in[7], ui_in[5:0], data_read_n, 1'b0};
 
 endmodule
