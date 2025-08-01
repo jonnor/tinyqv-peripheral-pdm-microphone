@@ -97,10 +97,7 @@ async def test_running(dut):
     await tqv.reset()
 
     # Test on a couple different clock scaling settings
-    clock_scales = [
-        10,
-        #16, # FIXME: adding 16 here breaks, must respect the CLKP setting
-    ]
+    clock_scales = range(2, 64+1, 2)
     for clock_scale in clock_scales:
         dut._log.info(f"start with scale={clock_scale}")
 
@@ -111,6 +108,16 @@ async def test_running(dut):
         # Start the clock
         await tqv.write_word_reg(REG_CTRL, 0x01)
         assert await tqv.read_word_reg(REG_CTRL) == 0x01
+
+        # Wait until next falling edge
+        for i in range(1000):
+            if dut.uo_out[PIN_PDM_CLK].value == 1:
+                break
+            await ClockCycles(dut.clk, 1)
+        for i in range(1000):
+            if dut.uo_out[PIN_PDM_CLK].value == 0:
+                break
+            await ClockCycles(dut.clk, 1)
 
         # PDM clock should toggle every SCALE clocks
         assert dut.uo_out[PIN_PDM_CLK].value == 0
