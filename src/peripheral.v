@@ -66,7 +66,9 @@ module tqvp_jnms_pdm (
 
     // The bottom 8 bits of the stored data are added to ui_in and output to uo_out.
     //assign uo_out = example_data[7:0] + ui_in;
+    assign uo_out[7:2] = 6'b000000;
     assign uo_out[1] = pdm_ctrl[0] && pdm_clk;
+    assign uo_out[0] = 0;
 
     always @(posedge clk) begin
     	    pdm_phase <= pdm_phase<9 ? pdm_phase+1 : 0;
