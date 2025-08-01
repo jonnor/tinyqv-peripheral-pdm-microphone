@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2025 Your Name
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2025 Jon Nordby, Martin Stensgård
+ * SPDX-License-Identifier: ISC
  */
 
 `default_nettype none
