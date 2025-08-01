@@ -37,6 +37,9 @@ module tqvp_jnms_pdm (
 
     reg [7:0] pdm_phase;
     reg       pdm_clk;
+    reg       pdm_int;
+
+    wire pdm_clk_out = pdm_ctrl[0] & pdm_clk;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -61,54 +64,32 @@ module tqvp_jnms_pdm (
                 if (data_write_n[1] != data_write_n[0]) pdm_pcmw[15:8]  <= data_in[15:8];
                 if (data_write_n == 2'b10)              pdm_pcmw[31:16] <= data_in[31:16];
             end
+            pdm_phase <= pdm_phase<9 ? pdm_phase+1 : 0;
+            pdm_clk <= pdm_phase<5;
         end
     end
 
-    // The bottom 8 bits of the stored data are added to ui_in and output to uo_out.
-    //assign uo_out = example_data[7:0] + ui_in;
-    assign uo_out[7:2] = 6'b000000;
-    assign uo_out[1] = pdm_ctrl[0] && pdm_clk;
-    assign uo_out[0] = 0;
+    // TODO(mastensg): output PCM sample clock on one of the pins.
+    assign uo_out = {pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out};
 
-    always @(posedge clk) begin
-    	    pdm_phase <= pdm_phase<9 ? pdm_phase+1 : 0;
-    	    pdm_clk <= pdm_phase<5;
-    end
-
-    // Address 0 reads the example data register.  
-    // Address 4 reads ui_in
-    // All other addresses read 0.
     assign data_out = (address == 6'h0) ? pdm_ctrl :
                       (address == 6'h4) ? pdm_clkp :
                       (address == 6'h8) ? pdm_pcmw :
                       32'h0;
 
-    // All reads complete in 1 clock
     assign data_ready = 1;
-    
-    // User interrupt is generated on rising edge of ui_in[6], and cleared by writing a 1 to the low bit of address 8.
-    reg example_interrupt;
-    reg last_ui_in_6;
 
+    // TODO(mastensg): set int when conversion complete, reset when read.
     always @(posedge clk) begin
         if (!rst_n) begin
-            example_interrupt <= 0;
+            pdm_int <= 0;
+        end else begin
+            pdm_int <= 0;
         end
-
-        if (ui_in[6] && !last_ui_in_6) begin
-            example_interrupt <= 1;
-        end else if (address == 6'h8 && data_write_n != 2'b11 && data_in[0]) begin
-            example_interrupt <= 0;
-        end
-
-        last_ui_in_6 <= ui_in[6];
     end
 
-    assign user_interrupt = example_interrupt;
+    assign user_interrupt = pdm_int;
 
-    // List all unused inputs to prevent warnings
-    // data_read_n is unused as none of our behaviour depends on whether
-    // registers are being read.
     wire _unused = &{ui_in[7], ui_in[5:0], data_read_n, 1'b0};
 
 endmodule
