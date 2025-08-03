@@ -63,8 +63,9 @@ async def test_initial(dut):
     # Intially the clock scaling is 0
     assert await tqv.read_word_reg(REG_CLKP) == 0x0
 
-    # Intially the PCM sample is 0
-    assert await tqv.read_word_reg(REG_PCMW) == 0x0
+    # Intially the PCM sample is undefined
+    pcm = await tqv.read_word_reg(REG_PCMW)
+    dut._log.info(f"REG_PCMW = {pcm}")
 
     # Set the clock scaling, and read it back
     max_clock_scale = 64
@@ -134,7 +135,6 @@ async def test_running(dut):
         #assert await tqv.is_interrupt_asserted() == True
 
         # Should be a valid PCM sample
-        # FIXME: should become something else than 0
         pcm = await tqv.read_word_reg(REG_PCMW)
-        assert pcm == 0x00
+        dut._log.info(f"REG_PCMW = {pcm}")
 

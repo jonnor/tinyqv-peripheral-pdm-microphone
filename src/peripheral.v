@@ -30,22 +30,27 @@ module tqvp_jnms_pdm (
 
     output        user_interrupt  // Dedicated interrupt request for this peripheral
 );
+    wire rst = !rst_n;
 
     reg [31:0] pdm_ctrl;
     reg [31:0] pdm_clkp;
-    reg [31:0] pdm_pcmw;
 
     reg [7:0] pdm_phase;
     reg       pdm_clk;
     reg       pdm_int;
 
+    reg [15:0] pcm;
+    reg        pcm_valid;
+
     wire pdm_clk_out = pdm_ctrl[0] & pdm_clk;
+    wire pdm_dat_in = ui_in[0];
+
+    cic3_pdm  cic(pdm_clk, rst, pdm_dat_in, pcm, pcm_valid);
 
     always @(posedge clk) begin
         if (!rst_n) begin
             pdm_ctrl <= 0;
             pdm_clkp <= 0;
-            pdm_pcmw <= 0;
             pdm_phase <= 0;
             pdm_clk <= 0;
         end else begin
@@ -59,11 +64,6 @@ module tqvp_jnms_pdm (
                 if (data_write_n[1] != data_write_n[0]) pdm_clkp[15:8]  <= data_in[15:8];
                 if (data_write_n == 2'b10)              pdm_clkp[31:16] <= data_in[31:16];
             end
-            if (address == 6'h8) begin
-                if (data_write_n != 2'b11)              pdm_pcmw[7:0]   <= data_in[7:0];
-                if (data_write_n[1] != data_write_n[0]) pdm_pcmw[15:8]  <= data_in[15:8];
-                if (data_write_n == 2'b10)              pdm_pcmw[31:16] <= data_in[31:16];
-            end
             pdm_clk   <= pdm_phase   < (pdm_clkp >> 1);
             pdm_phase <= pdm_phase+1 < pdm_clkp ? pdm_phase+1 : 0;
         end
@@ -74,7 +74,7 @@ module tqvp_jnms_pdm (
 
     assign data_out = (address == 6'h0) ? pdm_ctrl :
                       (address == 6'h4) ? pdm_clkp :
-                      (address == 6'h8) ? pdm_pcmw :
+                      (address == 6'h8) ? {16'h0, pcm} :
                       32'h0;
 
     assign data_ready = 1;
