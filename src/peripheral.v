@@ -49,7 +49,7 @@ module tqvp_jnms_pdm (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            pdm_ctrl <= 0;
+            pdm_ctrl <= 32'b11111111_11111111_11111111_11111110;
             pdm_clkp <= 0;
             pdm_phase <= 0;
             pdm_clk <= 0;
