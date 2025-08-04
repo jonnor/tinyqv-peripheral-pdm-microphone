@@ -27,34 +27,33 @@ def run_test():
 
     interrupt = Pin(1, Pin.IN)
     
-    while True:
-        #print(interrupt.value())
+    for i in range(10):
+        print(interrupt.value())
         time.sleep(0.10)
 
-    return
 
     # SPI communication
-
     # Chip select, active low
-    spi_cl_n = Pin(9, Pin.OUT)
+    spi_cs_n = Pin(9, Pin.OUT)
 
-    spi = SPI(1, 12_000_000,
-            sck=Pin(10), mosi=Pin(11), miso=Pin(8),
+    spi = SPI(1, 1_000,
+            sck=Pin(10),
+            mosi=Pin(11),
+            miso=Pin(8),
             bits=32,
             firstbit=SPI.MSB)
-    peri = PeripheralCommunicationSPI(spi)
+    peri = PeripheralCommunicationSPI(spi, spi_cs_n)
 
-    # select chip
-    spi_cl_n.value(0)
+
 
     ctrl = peri.read32(REG_CTRL)
     print('control', ctrl)
 
     # TODO: implement writing and read back
 
-    clkp = peri.read32(REG_CLKP)
+    #clkp = peri.read32(REG_CLKP)
 
-    peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x33, 0x00]))
+    #peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x33, 0x00]))
 
 
 class PeripheralCommunicationSPI():
@@ -71,16 +70,23 @@ class PeripheralCommunicationSPI():
     | 5-0   | The register address |
     """
 
-    def __init__(self, spi):
+    def __init__(self, spi, cs_n):
         self.spi = spi
+        self.cs_n = cs_n
 
     def read32(self, addr : int):
         if addr < 0 or addr > 2**5:
             raise ValueError("Invalid address")
 
+        self.cs_n.value(1)
+        time.sleep(0.01)
+        self.cs_n.value(0)
+
         self.spi.write(bytearray([ 0b01000000, 0, 0, addr ]))
-        read_data = bytearray([0, 0, 0, 0])
+        read_data = bytearray([0xFF, 0, 0xFF, 0])
         self.spi.readinto(read_data)
+
+        self.cs_n.value(1)
         return read_data
 
 
