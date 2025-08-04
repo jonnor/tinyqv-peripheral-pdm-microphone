@@ -8,6 +8,7 @@ distclean:
 	rm -rf tt venv
 
 fpga:
+	cp pico_ice/pico_ice.pcf tt/fpga/tt_fpga_top.pcf
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-fpga-bitstream
 
 harden:
