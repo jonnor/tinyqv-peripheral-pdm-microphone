@@ -7,6 +7,9 @@ all:
 distclean:
 	rm -rf tt venv
 
+fpga:
+	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-fpga-bitstream
+
 harden:
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --harden
 
@@ -21,4 +24,4 @@ tt:
 	$(ENVIRONMENT) venv/bin/pip install openlane==2.2.9
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-user-config
 
-.PHONY: all distclean harden png tt
+.PHONY: all distclean fpga harden png tt
