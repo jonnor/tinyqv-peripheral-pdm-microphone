@@ -24,4 +24,9 @@ tt:
 	$(ENVIRONMENT) venv/bin/pip install openlane==2.2.9
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-user-config
 
-.PHONY: all distclean fpga harden png tt
+pico:
+	mpremote cp build/tt_fpga.bin :fpga_bitstream.bin
+	mpremote run scripts/fpga_flash_prog.py
+
+.PHONY: all distclean fpga harden png tt pico
+
