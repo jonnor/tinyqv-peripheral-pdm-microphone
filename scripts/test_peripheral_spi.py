@@ -21,8 +21,19 @@ def run_test():
         Pin(i, Pin.IN, pull=None)
 
     clk = start_peripheral()
+    print(clk)
 
     # The SPI communication expects pico-ice
+
+    interrupt = Pin(1, Pin.IN)
+    
+    while True:
+        #print(interrupt.value())
+        time.sleep(0.10)
+
+    return
+
+    # SPI communication
 
     # Chip select, active low
     spi_cl_n = Pin(9, Pin.OUT)
@@ -32,14 +43,6 @@ def run_test():
             bits=32,
             firstbit=SPI.MSB)
     peri = PeripheralCommunicationSPI(spi)
-
-    interrupt = Pin(1, Pin.IN) 
-    
-    while True:
-        print(interrupt.value())
-        time.sleep(0.10)
-
-    return
 
     # select chip
     spi_cl_n.value(0)
@@ -91,6 +94,21 @@ class PeripheralCommunicationSPI():
 
 def start_peripheral():
 
+    # Start the ICE40 FPGA
+    ice_creset_b = machine.Pin(27, machine.Pin.OUT)
+    ice_creset_b.value(0)
+
+    ice_done = machine.Pin(26, machine.Pin.IN)
+    time.sleep_us(10)
+    ice_creset_b.value(1)
+
+    while ice_done.value() == 0:
+        print(".", end = "")
+        time.sleep(0.001)
+    print("ICE40 done")
+
+
+    # Start the TinyTapeout TinyQV peripheral
     rst_n = Pin(TT_RST, Pin.OUT)
     clk = Pin(FPGA_CLK, Pin.OUT)
 
@@ -115,7 +133,8 @@ def start_peripheral():
     clk.off()
 
     time.sleep(0.001)
-    clk = PWM(Pin(24), freq=14_000_000, duty_u16=32768)
+    clk = PWM(FPGA_CLK, freq=14_000_000, duty_u16=32768)
+    print("TT clock running")
 
     return clk
 

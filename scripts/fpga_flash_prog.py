@@ -30,6 +30,7 @@ ram_sel.off()
 
 # NOTE: Put your filename here 
 prog = "fpga_bitstream.bin"
+print('Flashing', prog)
 
 def flash_cmd(data, dummy_len=0, read_len=0):
     dummy_buf = bytearray(dummy_len)
