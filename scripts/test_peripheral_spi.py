@@ -1,6 +1,7 @@
 
 import time
 import machine
+import struct
 from machine import SPI, Pin, PWM
 
 FPGA_CLK = 24
@@ -36,10 +37,13 @@ def run_test():
     # Chip select, active low
     spi_cs_n = Pin(13, Pin.OUT) # Pin 9 is used for ICE40 flash SS, should be avoided
 
-    spi = SPI(1, 1_000,
-            sck=Pin(10),
-            mosi=Pin(11),
-            miso=Pin(8),
+    spi = SPI(0, 1_000,
+            sck=Pin(2),
+            mosi=Pin(3),
+            miso=Pin(0),
+            #sck=Pin(10),
+            #mosi=Pin(11),
+            #miso=Pin(8),
             bits=8,
             phase=0,
             polarity=0,
@@ -47,15 +51,28 @@ def run_test():
     peri = PeripheralCommunicationSPI(spi, spi_cs_n)
 
 
-
     ctrl = peri.read32(REG_CTRL)
     print('control', ctrl)
 
     # TODO: implement writing and read back
 
-    #clkp = peri.read32(REG_CLKP)
+    clkp = peri.read32(REG_CLKP)
+    print('scale', clkp)
+    peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x00, 0x8]))
 
-    #peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x33, 0x00]))
+    clkp = peri.read32(REG_CLKP)
+    print('scale', clkp)
+
+    #for i in range(10):
+    #    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x01]))
+    #    time.sleep(2.0)
+    #    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x00]))
+    #    time.sleep(2.0)
+
+    print('enable clock')
+    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x01]))
+
+    # TODO: read from PCM register
 
 
 class PeripheralCommunicationSPI():
@@ -80,15 +97,14 @@ class PeripheralCommunicationSPI():
         if addr < 0 or addr > 2**5:
             raise ValueError("Invalid address")
 
-        self.cs_n.value(1)
-        time.sleep(0.01)
         self.cs_n.value(0)
-
         self.spi.write(bytearray([ 0b01000000, 0, 0, addr ]))
+        #self.spi.write(b'\x40\x00\x00' + struct.pack('>B', addr))
         read_data = bytearray([0xFF, 0, 0xFF, 0])
+        #res = struct.unpack('>L', self.spi.read(4))[0]
         self.spi.readinto(read_data)
-
         self.cs_n.value(1)
+
         return read_data
 
 
@@ -96,9 +112,15 @@ class PeripheralCommunicationSPI():
         if addr < 0 or addr > 2**5:
             raise ValueError("Invalid address")
 
-        self.spi.write(bytearray([ 0b11000000, 0, 0, addr ]))
-        self.spi.write(data)
+        self.cs_n.value(0)
+        cmd = [ 0b11000000, 0, 0, addr ]
+        p = bytearray(cmd + list(data))
+        #print('write', p)
 
+        #spi.write(b'\xC0\x00\x00' + struct.pack('>B', address) + struct.pack('>L', data))
+
+        self.spi.write(p)
+        self.cs_n.value(1)
 
 def start_peripheral():
 

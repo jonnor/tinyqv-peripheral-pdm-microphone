@@ -4,12 +4,12 @@ set_io --warn-no-port clk    	35
 set_io --warn-no-port rst_n    	39
 
 set_io --warn-no-port uio[0]  25	# user_interrupt
-set_io --warn-no-port uio[1]  19
-set_io --warn-no-port uio[2]  27
-set_io --warn-no-port uio[3]  14	# spi_miso
+set_io --warn-no-port uio[1]  17
+set_io --warn-no-port uio[2]  15
+set_io --warn-no-port uio[3]  27	# spi_miso
 set_io --warn-no-port uio[4]  41	# spi_cs_n
-set_io --warn-no-port uio[5]  15	# spi_clk
-set_io --warn-no-port uio[6]  17	# spi_mosi
+set_io --warn-no-port uio[5]  21	# spi_clk
+set_io --warn-no-port uio[6]  19	# spi_mosi
 set_io --warn-no-port uio[7]  20
 
 set_io --warn-no-port ui_in[0]  43
