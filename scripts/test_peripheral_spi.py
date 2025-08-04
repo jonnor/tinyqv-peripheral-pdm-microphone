@@ -6,7 +6,10 @@ from machine import SPI, Pin, PWM
 FPGA_CLK = 24
 TT_RST = 12
 
-REG_CTRL = 0x0
+REG_CTRL = 0x00
+REG_CLKP = 0x04
+REG_PCMW = 0x08
+
 
 def run_test():
 
@@ -19,15 +22,36 @@ def run_test():
 
     clk = start_peripheral()
 
-    spi = SPI(1, 12_000_000, sck=Pin(10), mosi=Pin(11), miso=Pin(8),
+    # The SPI communication expects pico-ice
+
+    # Chip select, active low
+    spi_cl_n = Pin(9, Pin.OUT)
+
+    spi = SPI(1, 12_000_000,
+            sck=Pin(10), mosi=Pin(11), miso=Pin(8),
             bits=32,
             firstbit=SPI.MSB)
     peri = PeripheralCommunicationSPI(spi)
+
+    interrupt = Pin(1, Pin.IN) 
     
+    while True:
+        print(interrupt.value())
+        time.sleep(0.10)
+
+    return
+
+    # select chip
+    spi_cl_n.value(0)
+
     ctrl = peri.read32(REG_CTRL)
     print('control', ctrl)
 
     # TODO: implement writing and read back
+
+    clkp = peri.read32(REG_CLKP)
+
+    peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x33, 0x00]))
 
 
 class PeripheralCommunicationSPI():
@@ -51,20 +75,18 @@ class PeripheralCommunicationSPI():
         if addr < 0 or addr > 2**5:
             raise ValueError("Invalid address")
 
-        # Read
-        #cmd = (1 >> 31) & (2 << 29) & addr
-        
         self.spi.write(bytearray([ 0b01000000, 0, 0, addr ]))
         read_data = bytearray([0, 0, 0, 0])
         self.spi.readinto(read_data)
         return read_data
 
 
-    def spi_write32(spi, addr):
-        pass
-        raise NotImplementedError()
-        #addr
-        #0x
+    def write32(self, addr, data):
+        if addr < 0 or addr > 2**5:
+            raise ValueError("Invalid address")
+
+        self.spi.write(bytearray([ 0b11000000, 0, 0, addr ]))
+        self.spi.write(data)
 
 
 def start_peripheral():
