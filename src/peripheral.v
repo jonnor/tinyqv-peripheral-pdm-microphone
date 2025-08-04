@@ -88,7 +88,8 @@ module tqvp_jnms_pdm (
         end
     end
 
-    assign user_interrupt = pdm_int;
+    //assign user_interrupt = pdm_int;
+    assign user_interrupt = 1;
 
     wire _unused = &{ui_in[7], ui_in[5:0], data_read_n, 1'b0};
 
