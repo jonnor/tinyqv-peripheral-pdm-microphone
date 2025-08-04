@@ -34,13 +34,15 @@ def run_test():
 
     # SPI communication
     # Chip select, active low
-    spi_cs_n = Pin(9, Pin.OUT)
+    spi_cs_n = Pin(13, Pin.OUT) # Pin 9 is used for ICE40 flash SS, should be avoided
 
     spi = SPI(1, 1_000,
             sck=Pin(10),
             mosi=Pin(11),
             miso=Pin(8),
-            bits=32,
+            bits=8,
+            phase=0,
+            polarity=0,
             firstbit=SPI.MSB)
     peri = PeripheralCommunicationSPI(spi, spi_cs_n)
 
