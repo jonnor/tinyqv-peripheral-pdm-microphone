@@ -84,12 +84,11 @@ module tqvp_jnms_pdm (
         if (!rst_n) begin
             pdm_int <= 0;
         end else begin
-            pdm_int <= 0;
+            pdm_int <= pcm_valid;
         end
     end
 
-    //assign user_interrupt = pdm_int;
-    assign user_interrupt = 1;
+    assign user_interrupt = pdm_int;
 
     wire _unused = &{ui_in[7], ui_in[5:0], data_read_n, 1'b0};
 
