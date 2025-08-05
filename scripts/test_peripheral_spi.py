@@ -58,7 +58,7 @@ def run_test():
 
     clkp = peri.read32(REG_CLKP)
     print('scale', clkp)
-    peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x00, 0x8]))
+    peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x00, 14]))
 
     clkp = peri.read32(REG_CLKP)
     print('scale', clkp)
@@ -72,7 +72,10 @@ def run_test():
     print('enable clock')
     peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x01]))
 
-    # TODO: read from PCM register
+    print("PCM:")
+    for i in range(100):
+        pcm = peri.read32(REG_PCMW)
+        print(pcm[3])
 
 
 class PeripheralCommunicationSPI():
