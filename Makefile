@@ -21,6 +21,9 @@ pico:
 png:
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-png
 
+test:
+	cd test && . venv/bin/activate && make -B
+
 tt:
 	git clone -b ttsky25a https://github.com/TinyTapeout/tt-support-tools tt
 	python3 -m venv venv
