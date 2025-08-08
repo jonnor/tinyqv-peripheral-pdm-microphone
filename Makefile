@@ -14,6 +14,10 @@ fpga:
 harden:
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --harden
 
+pico:
+	mpremote cp build/tt_fpga.bin :fpga_bitstream.bin
+	mpremote run scripts/fpga_flash_prog.py
+
 png:
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-png
 
@@ -25,9 +29,4 @@ tt:
 	$(ENVIRONMENT) venv/bin/pip install openlane==2.2.9
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-user-config
 
-pico:
-	mpremote cp build/tt_fpga.bin :fpga_bitstream.bin
-	mpremote run scripts/fpga_flash_prog.py
-
-.PHONY: all distclean fpga harden png tt pico
-
+.PHONY: all distclean fpga harden pico png test tt
