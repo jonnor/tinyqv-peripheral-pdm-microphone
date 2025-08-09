@@ -79,12 +79,15 @@ module tqvp_jnms_pdm (
 
     assign data_ready = 1;
 
-    // TODO(mastensg): set int when conversion complete, reset when read.
     always @(posedge clk) begin
         if (!rst_n) begin
             pdm_int <= 0;
         end else begin
-            pdm_int <= pcm_valid;
+            if (pdm_ctrl[0] & pcm_valid) begin
+                pdm_int <= 1;
+            end else if (address == 6'h8 && data_read_n == 2'b10) begin
+                pdm_int <= 0;
+            end
         end
     end
 
