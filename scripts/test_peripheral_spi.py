@@ -37,7 +37,8 @@ def run_test():
     # Chip select, active low
     spi_cs_n = Pin(13, Pin.OUT) # Pin 9 is used for ICE40 flash SS, should be avoided
 
-    spi = SPI(0, 1_000,
+    # NOTE: Above 6 Mhz started to get read/write errors
+    spi = SPI(0, 6_000_000,
             sck=Pin(2),
             mosi=Pin(3),
             miso=Pin(0),
@@ -54,14 +55,13 @@ def run_test():
     ctrl = peri.read32(REG_CTRL)
     print('control', ctrl)
 
-    # TODO: implement writing and read back
+    # Set and check scale
+    clkp = peri.read32(REG_CLKP)
+    scale_config = bytearray([0x00, 0x00, 0x00, 64])
+    peri.write32(REG_CLKP, scale_config)
 
     clkp = peri.read32(REG_CLKP)
-    print('scale', clkp)
-    peri.write32(REG_CLKP, bytearray([0x00, 0x00, 0x00, 14]))
-
-    clkp = peri.read32(REG_CLKP)
-    print('scale', clkp)
+    assert clkp == scale_config, (clkp, scale_config)
 
     #for i in range(10):
     #    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x01]))
@@ -69,14 +69,48 @@ def run_test():
     #    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x00]))
     #    time.sleep(2.0)
 
+    # Enable the PDM clock
     print('enable clock')
-    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x01]))
+    clock_config = bytearray([0x00, 0x00, 0x00, 0x01])
+    peri.write32(REG_CTRL, clock_config)
+    ctrl = peri.read32(REG_CTRL)
+    assert ctrl == clock_config, (ctrl, clock_config)
+
 
     print("PCM:")
-    for i in range(100):
-        pcm = peri.read32(REG_PCMW)
-        print(pcm[3])
+    pcm_start = time.ticks_us()
+    n_samples = 100
+    samples = bytearray(n_samples)
+    read_pcm_samples(peri, samples)
+    pcm_read_duration = time.ticks_diff(time.ticks_us(), pcm_start)
+    per_sample = pcm_read_duration / n_samples
+    deadline = 62 # at 16khz, only have 62 us between each sample
+    print('PCM read duration', per_sample)
+    assert per_sample < deadline, (per_sample, deadline)
 
+    print(samples)
+
+@micropython.native
+def read_pcm_samples(peri, samples):
+
+    n_samples = len(samples) # 1 byte per each, for now
+
+    # pre-allocate buffers
+    mem = memoryview(samples) 
+    cmd = bytearray([ 0b01000000, 0, 0, REG_PCMW ])
+    pcm = bytearray(4)
+
+    # cache member references, avoids lookup
+    # and we do not have the function call overhead
+    cs_n = peri.cs_n
+    spi = peri.spi
+
+    for i in range(n_samples):
+        cs_n.value(0)
+        spi.write(cmd)
+        spi.readinto(pcm)
+        mem[i] = pcm[3]
+        cs_n.value(1)
 
 class PeripheralCommunicationSPI():
 
@@ -96,18 +130,25 @@ class PeripheralCommunicationSPI():
         self.spi = spi
         self.cs_n = cs_n
 
+    @micropython.native
+    def read32_into(self, addr : int, buf, cmd):
+        """
+        Read into a pre-allocated buffer. Fastest
+        """
+
+        self.cs_n.value(0)
+        self.spi.write(cmd)
+        self.spi.readinto(buf)
+        self.cs_n.value(1)
+
+    @micropython.native
     def read32(self, addr : int):
         if addr < 0 or addr > 2**5:
             raise ValueError("Invalid address")
 
-        self.cs_n.value(0)
-        self.spi.write(bytearray([ 0b01000000, 0, 0, addr ]))
-        #self.spi.write(b'\x40\x00\x00' + struct.pack('>B', addr))
+        cmd = bytearray([ 0b01000000, 0, 0, addr ])
         read_data = bytearray([0xFF, 0, 0xFF, 0])
-        #res = struct.unpack('>L', self.spi.read(4))[0]
-        self.spi.readinto(read_data)
-        self.cs_n.value(1)
-
+        self.read32_into(addr, read_data, cmd)
         return read_data
 
 
@@ -166,7 +207,7 @@ def start_peripheral():
     clk.off()
 
     time.sleep(0.001)
-    clk = PWM(FPGA_CLK, freq=14_000_000, duty_u16=32768)
+    clk = PWM(FPGA_CLK, freq=64_000_000, duty_u16=32768)
     print("TT clock running")
 
     return clk
