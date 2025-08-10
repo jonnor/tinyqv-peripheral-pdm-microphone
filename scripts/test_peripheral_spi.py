@@ -146,7 +146,7 @@ def read_with_interrupt(duration=10):
     
     if total_samples == 0:
         print('FAILED, 0 samples')
-    delta = time.ticks_diff(pcm_last, pcm_start)
+    delta = time.ticks_diff(pcm_last, pcm_start)+1
     effective_samplerate = total_samples / (delta/1e6)
     print('read', delta/1e3, total_samples, effective_samplerate)
 
@@ -178,7 +178,7 @@ def run_test():
 
     # NOTE: Above 6 Mhz started to get read/write errors
     global spi
-    spi = SPI(0, 6_000_000,
+    spi = SPI(0, 4_000_000,
             sck=Pin(2),
             mosi=Pin(3),
             miso=Pin(0),
@@ -216,33 +216,39 @@ def run_test():
     ctrl = peri.read32(REG_CTRL)
     assert ctrl == clock_config, (ctrl, clock_config)
 
-    # Try to read PCM data as fast as we can
-    for i in range(10):
+    # Try to read PCM data as fast as we can with interrupt
+    # XXX: disabled, was unable to go faster than 11-12 khz
+    for i in range(0):
         read_with_interrupt()
 
         # HACK: try to recover missing interrupt by doing a read
         peri.read32(REG_PCMW)
 
-    ### XXX:
-    return
 
-    print("PCM:")
+    samplerate = 16000
+    duration = 4.0
+    print("Recording PCM", duration, 'seconds')
     pcm_start = time.ticks_us()
-    n_samples = 600
-    samples = bytearray(n_samples)
-    read_pcm_samples_loop(peri, samples)
+    n_samples = int(duration*samplerate)
+    samples = bytearray(2*n_samples)
+    read_pcm_samples_loop(peri, samples, interrupt)
     pcm_read_duration = time.ticks_diff(time.ticks_us(), pcm_start)
     per_sample = pcm_read_duration / n_samples
-    deadline = 62 # at 16khz, only have 62 us between each sample
+    deadline = 63 # at 16khz, only have 62 us between each sample
     print('PCM read duration', per_sample)
     assert per_sample < deadline, (per_sample, deadline)
 
-    print(samples)
+    file_path = 'pcm.raw'
+    with open(file_path, 'wb') as f:
+        f.write(samples)
+    print('Wrote', file_path)
+    
 
 @micropython.native
-def read_pcm_samples_loop(peri, samples):
+def read_pcm_samples_loop(peri, samples, interrupt):
 
     n_samples = len(samples) # 1 byte per each, for now
+    print('s', n_samples)
 
     # pre-allocate buffers
     mem = memoryview(samples) 
@@ -254,14 +260,22 @@ def read_pcm_samples_loop(peri, samples):
     cs_n = peri.cs_n
     spi = peri.spi
 
-    for i in range(n_samples):
-        cs_n.value(0)
-        spi.write(cmd)
-        spi.readinto(pcm)
-        #print(pcm)
-        mem[i] = pcm[3]
-        cs_n.value(1)
+    i = 0
+    while i < n_samples:
 
+        ready = interrupt.value()
+        #print('r', ready)
+        if ready:
+            cs_n.value(0)
+            spi.write(cmd)
+            spi.readinto(pcm)
+            mem[i] = pcm[2]
+            i += 1
+            mem[i] = pcm[3]
+            i += 1
+            cs_n.value(1)
+
+            #time.sleep_us(1)
 
 
 def start_peripheral():
