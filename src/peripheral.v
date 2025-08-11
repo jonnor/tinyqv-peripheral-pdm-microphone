@@ -41,11 +41,12 @@ module tqvp_jnms_pdm (
 
     reg [15:0] pcm;
     reg        pcm_valid;
+    wire [15:0] pcm_from_filter;
 
     wire pdm_clk_out = pdm_ctrl[0] & pdm_clk;
     wire pdm_dat_in = ui_in[0];
 
-    cic3_pdm  cic(pdm_clk, rst, pdm_dat_in, pcm, pcm_valid);
+    cic3_pdm  cic(pdm_clk, rst, pdm_dat_in, pcm_from_filter, pcm_valid);
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -82,8 +83,10 @@ module tqvp_jnms_pdm (
     always @(posedge clk) begin
         if (!rst_n) begin
             pdm_int <= 0;
+            pcm <= 0;
         end else begin
             if (pdm_ctrl[0] & pcm_valid) begin
+                pcm <= pcm_from_filter;
                 pdm_int <= 1;
             end else if (address == 6'h8 && data_read_n == 2'b10) begin
                 pdm_int <= 0;
