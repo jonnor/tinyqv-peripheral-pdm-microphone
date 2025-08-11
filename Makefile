@@ -1,6 +1,14 @@
 .POSIX:
 
 ENVIRONMENT = PATH=$$(realpath venv/bin):$$PATH PDK=sky130A
+PDK_ROOT=pdk
+
+# https://github.com/TinyTapeout/volare-action/blob/main/action.yaml
+# https://github.com/TinyTapeout/tt-gds-action/blob/main/gl_test/action.yml
+PDK_NAME=sky130
+PDK_VERSION=cd1748bb197f9b7af62a54507de6624e30363943
+
+TOP_MODULE=tt_um_tqv_peripheral_harness
 
 all:
 
@@ -23,6 +31,18 @@ png:
 
 test:
 	cd test && . venv/bin/activate && make -B
+
+# Uses separate venv, just in case it messes with other dependencies
+gl_test_setup:
+	python3 -m venv test/venv
+	test/venv/bin/pip install -r test/requirements.txt
+	test/venv/bin/pip install volare==0.19.1
+	source test/venv/bin/activate && PDK_ROOT=${PDK_ROOT} volare enable --pdk ${PDK_NAME} ${PDK_VERSION}
+
+
+gl_test:
+	cp ./runs/wokwi/final/pnl/${TOP_MODULE}.pnl.v test/gate_level_netlist.v
+	PDK_ROOT=../${PDK_ROOT} make -C test -B GATES=yes
 
 tt:
 	git clone -b ttsky25a https://github.com/TinyTapeout/tt-support-tools tt
