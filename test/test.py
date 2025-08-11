@@ -97,6 +97,9 @@ async def test_running(dut):
     # Reset
     await tqv.reset()
 
+    # initially we are off
+    assert await tqv.read_word_reg(REG_CTRL) == 0x00
+
     # Test on a couple different clock scaling settings
     clock_scales = range(2, 64+1, 2)
     for clock_scale in clock_scales:
