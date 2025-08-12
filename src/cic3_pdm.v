@@ -26,7 +26,7 @@ module cic3_pdm (
 
     reg signed [31:0] delay_0, delay_1, delay_2;
 
-    reg signed [15:0] pcm_out_r = 0;
+    reg signed [15:0] pcm_out_r;
     reg pcm_valid_r;
 
     // Integrator stage (runs every clk)
@@ -61,6 +61,7 @@ module cic3_pdm (
             delay_1 <= 0;
             delay_2 <= 0;
             pcm_valid_r <= 0;
+            pcm_out_r <= 0;
         end
 
         if (decim_counter == 63) begin
