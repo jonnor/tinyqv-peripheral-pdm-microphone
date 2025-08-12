@@ -53,6 +53,8 @@ module cic3_pdm (
     // Comb stage (runs every DECIMATION clocks)
     always @(posedge clk or posedge rst) begin
 
+        pcm_valid_r <= 0; // make sure valid goes low after high pulse
+
         if (rst) begin
             comb_0 <= 0;
             comb_1 <= 0;
