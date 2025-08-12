@@ -40,7 +40,7 @@ module tqvp_jnms_pdm (
     reg       pdm_int;
 
     reg [15:0] pcm;
-    reg        pcm_valid;
+    wire        pcm_valid;
     wire [15:0] pcm_from_filter;
 
     wire pdm_clk_out = pdm_ctrl[0] & pdm_clk;
