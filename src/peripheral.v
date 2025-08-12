@@ -37,7 +37,7 @@ module tqvp_jnms_pdm (
 
     reg [7:0] pdm_phase;
     reg       pdm_clk;
-    reg       pdm_int;
+    (* keep *) reg       pdm_int;
 
     reg [15:0] pcm;
     wire        pcm_valid;
