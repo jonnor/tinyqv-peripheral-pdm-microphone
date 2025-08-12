@@ -37,7 +37,7 @@ gl_test_setup:
 	python3 -m venv test/venv
 	test/venv/bin/pip install -r test/requirements.txt
 	test/venv/bin/pip install volare==0.19.1
-	source test/venv/bin/activate && PDK_ROOT=${PDK_ROOT} volare enable --pdk ${PDK_NAME} ${PDK_VERSION}
+	. test/venv/bin/activate && PDK_ROOT=${PDK_ROOT} volare enable --pdk ${PDK_NAME} ${PDK_VERSION}
 
 
 gl_test:
