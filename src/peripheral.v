@@ -90,6 +90,10 @@ module tqvp_jnms_pdm (
                 pdm_int <= 1;
             end else if (address == 6'h8 && data_read_n == 2'b10) begin
                 pdm_int <= 0;
+            end else begin
+                // Hold current values
+                pdm_int <= pdm_int;
+                pcm <= pcm;
             end
         end
     end
