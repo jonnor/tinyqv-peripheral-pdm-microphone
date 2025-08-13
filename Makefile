@@ -19,6 +19,17 @@ fpga:
 	cp pico_ice/pico_ice.pcf tt/fpga/tt_fpga_top.pcf
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-fpga-bitstream
 
+# Uses separate venv, just in case it messes with other dependencies
+gl_test_setup:
+	python3 -m venv test/venv
+	test/venv/bin/pip install -r test/requirements.txt
+	test/venv/bin/pip install volare==0.19.1
+	. test/venv/bin/activate && PDK_ROOT=${PDK_ROOT} volare enable --pdk ${PDK_NAME} ${PDK_VERSION}
+
+gl_test:
+	cp ./runs/wokwi/final/pnl/${TOP_MODULE}.pnl.v test/gate_level_netlist.v
+	. test/venv/bin/activate && PDK_ROOT=../${PDK_ROOT} make -C test -B GATES=yes
+
 harden:
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --harden
 
@@ -32,18 +43,6 @@ png:
 test:
 	cd test && . venv/bin/activate && make -B
 
-# Uses separate venv, just in case it messes with other dependencies
-gl_test_setup:
-	python3 -m venv test/venv
-	test/venv/bin/pip install -r test/requirements.txt
-	test/venv/bin/pip install volare==0.19.1
-	. test/venv/bin/activate && PDK_ROOT=${PDK_ROOT} volare enable --pdk ${PDK_NAME} ${PDK_VERSION}
-
-
-gl_test:
-	cp ./runs/wokwi/final/pnl/${TOP_MODULE}.pnl.v test/gate_level_netlist.v
-	. test/venv/bin/activate && PDK_ROOT=../${PDK_ROOT} make -C test -B GATES=yes
-
 tt:
 	git clone -b ttsky25a https://github.com/TinyTapeout/tt-support-tools tt
 	python3 -m venv venv
@@ -52,4 +51,4 @@ tt:
 	$(ENVIRONMENT) venv/bin/pip install openlane==2.2.9
 	$(ENVIRONMENT) venv/bin/python tt/tt_tool.py --create-user-config
 
-.PHONY: all distclean fpga harden pico png test tt
+.PHONY: all distclean fpga gl_test gl_test_setup harden pico png test tt
