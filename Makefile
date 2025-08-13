@@ -42,7 +42,7 @@ gl_test_setup:
 
 gl_test:
 	cp ./runs/wokwi/final/pnl/${TOP_MODULE}.pnl.v test/gate_level_netlist.v
-	PDK_ROOT=../${PDK_ROOT} make -C test -B GATES=yes
+	. test/venv/bin/activate && PDK_ROOT=../${PDK_ROOT} make -C test -B GATES=yes
 
 tt:
 	git clone -b ttsky25a https://github.com/TinyTapeout/tt-support-tools tt
