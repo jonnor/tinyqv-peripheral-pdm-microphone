@@ -12,5 +12,6 @@ test/results.xml
 test/gate_level_netlist.v
 /build
 /gds_render*
+/pdk
 /src/_tt_fpga_top.v
 /tt
