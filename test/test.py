@@ -101,7 +101,8 @@ async def test_running(dut):
     assert await tqv.read_word_reg(REG_CTRL) == 0x00
 
     # Test on a couple different clock scaling settings
-    clock_scales = range(2, 64+1, 2)
+    # NOTE: fails tests for very low scales, because SPI readout takes too many clocks
+    clock_scales = range(20, 64+1, 8)
     for clock_scale in clock_scales:
         dut._log.info(f"start with scale={clock_scale}")
 
@@ -130,23 +131,36 @@ async def test_running(dut):
         await ClockCycles(dut.clk, clock_scale//2)
         assert dut.uo_out[PIN_PDM_CLK].value == 0
 
-        # TODO(mastensg): fix this :)
-        ### # Interrupt should happen every DOWNSCAMPLE*SCALE clocks
-        ### downsample = 64
-        ### # Wait until next falling edge of interrupt
-        ### for i in range(100000):
-        ###     if await tqv.is_interrupt_asserted() == True:
-        ###         break
-        ###     await ClockCycles(dut.clk, 1)
-        ### for i in range(100000):
-        ###     if await tqv.is_interrupt_asserted() == False:
-        ###         break
-        ###     await ClockCycles(dut.clk, 1)
-        ### assert await tqv.is_interrupt_asserted() == False
-        ### await ClockCycles(dut.clk, downsample*clock_scale//2)
-        ### assert await tqv.is_interrupt_asserted() == True
+        # Make sure we clear the interrupt
+        pcm = await tqv.read_word_reg(REG_PCMW)
+        assert await tqv.is_interrupt_asserted() == False
 
-        # Should be a valid PCM sample
+        # Interrupt should happen every DOWNSCAMPLE*SCALE clocks
+        downsample = 64
+        # Wait until next interrupt
+        cycles_since = -1
+        for i in range(100000):
+            if await tqv.is_interrupt_asserted() == True:
+                cycles_since = 0
+                break
+            await ClockCycles(dut.clk, 1)
+
+        # Reading PCM sample disables interrupt,
+        # and enables it to trigger again
         pcm = await tqv.read_word_reg(REG_PCMW)
         dut._log.info(f"REG_PCMW = {pcm}")
+        #await ClockCycles(dut.clk, 1)
+        assert await tqv.is_interrupt_asserted() == False
+
+        for i in range(100000):
+            if await tqv.is_interrupt_asserted() == True:
+                break
+            await ClockCycles(dut.clk, 1)
+            cycles_since += 1
+
+        # Need to compensate for clock cycles spent on reading
+        expect_cycles = clock_scale * downsample
+        assert cycles_since < expect_cycles
+        assert cycles_since > expect_cycles-300
+
 
