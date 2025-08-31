@@ -46,7 +46,13 @@ module tqvp_jnms_pdm (
     wire pdm_clk_out = pdm_ctrl[0] & pdm_clk;
     wire pdm_dat_in = ui_in[0];
 
-    cic3_pdm  cic(pdm_clk, rst, pdm_dat_in, pcm_from_filter, pcm_valid);
+    reg[2:0]  scale_shift;   // Right shift amount (0-7 bits)
+    reg[7:0]  dc_alpha;      // DC removal alpha (0=bypass, 255=strong)
+
+    cic3_pdm  cic(pdm_clk, rst, pdm_dat_in,
+        scale_shift, dc_alpha,
+        pcm_from_filter, pcm_valid
+    );
 
     always @(posedge clk) begin
         if (!rst_n) begin
