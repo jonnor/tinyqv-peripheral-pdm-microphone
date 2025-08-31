@@ -46,6 +46,7 @@ module tqvp_jnms_pdm (
     wire pdm_clk_out = pdm_ctrl[0] & pdm_clk;
     wire pdm_dat_in = ui_in[0];
 
+    // TODO: support changing these values
     reg[2:0]  scale_shift;   // Right shift amount (0-7 bits)
     reg[7:0]  dc_alpha;      // DC removal alpha (0=bypass, 255=strong)
 
@@ -60,6 +61,8 @@ module tqvp_jnms_pdm (
             pdm_clkp <= 0;
             pdm_phase <= 0;
             pdm_clk <= 0;
+            scale_shift <= 1;
+            dc_alpha <= 255;
         end else begin
             if (address == 6'h0) begin
                 if (data_write_n != 2'b11)              pdm_ctrl[7:0]   <= data_in[7:0];
