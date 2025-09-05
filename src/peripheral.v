@@ -42,7 +42,7 @@ module tqvp_jnms_pdm (
     wire [15:0] pcm_from_filter;
 
     wire pdm_clk_out = pdm_enable[0] & pdm_clk;
-    wire pdm_dat_in = ui_in[0];
+    wire pdm_dat_in = ui_in[pdm_select];
 
     cic3_pdm  cic(pdm_clk, rst, pdm_dat_in, pcm_from_filter, pcm_valid);
 
