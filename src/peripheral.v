@@ -70,7 +70,7 @@ module tqvp_jnms_pdm (
 
     assign uo_out = {pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out, pdm_clk_out};
 
-    assign data_out = (address == 6'h0) ? {21'h0, pdm_enable} :
+    assign data_out = (address == 6'h0) ? {31'h0, pdm_enable} :
                       (address == 6'h4) ? {24'h0, pdm_period} :
                       (address == 6'h8) ? {16'h0, pcm} :
                       (address == 6'hc) ? {29'h0, pdm_select} :
