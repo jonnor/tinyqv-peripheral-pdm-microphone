@@ -34,7 +34,14 @@ Clears interrupt when read.
 
 ## How to test
 
-TODO(mastensg): add example code.
+In this example we generate 15 625 PCM samples per second,
+by generating a 1 MHz PDM bit clock,
+assuming the microcontroller's clock is running at 14 MHz:
+
+1. Write 14 (cpu clk per pdm clk) to address 4 (CLKP) to set PDM frequency.
+2. Write 1 to address 0 (CTRL) to start this peripheral running.
+3. Every time this peripheral interrupts, read PCM sample from address 8.
+4. Do something interesting with the audio samples! :)
 
 ## External hardware
 
