@@ -54,14 +54,10 @@ module tqvp_jnms_pdm (
             pdm_phase <= 0;
             pdm_clk <= 0;
         end else begin
-            if (address == 6'h0) begin
-                pdm_enable[0] <= data_in[0];
-            end
-            if (address == 6'h4) begin
-                pdm_period[7:0] <= data_in[7:0];
-            end
-            if (address == 6'hc) begin
-                pdm_select[2:0] <= data_in[2:0];
+            if (data_write_n != 2'b11) begin
+                if (address == 6'h0) pdm_enable[0]   <= data_in[0];
+                if (address == 6'h4) pdm_period[7:0] <= data_in[7:0];
+                if (address == 6'hc) pdm_select[2:0] <= data_in[2:0];
             end
             pdm_clk   <= pdm_phase   < (pdm_period >> 1);
             pdm_phase <= pdm_phase+1 < pdm_period ? pdm_phase+1 : 0;
