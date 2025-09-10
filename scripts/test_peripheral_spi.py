@@ -7,9 +7,10 @@ from machine import SPI, Pin, PWM
 FPGA_CLK = 24
 TT_RST = 12
 
-REG_CTRL = 0x00
-REG_CLKP = 0x04
-REG_PCMW = 0x08
+REG_ENABLE = 0x00
+REG_PERIOD = 0x04
+REG_SAMPLE = 0x08
+REG_SAMPLE = 0x0c
 
 
 # Setup buffer for error reports in interrupts
@@ -74,7 +75,7 @@ class PeripheralCommunicationSPI():
 # globals
 spi = None
 spi_cs_n = None
-read_pcm_cmd = bytearray([ 0b01000000, 0, 0, REG_PCMW ])
+read_pcm_cmd = bytearray([ 0b01000000, 0, 0, REG_SAMPLE ])
 pcm_sample = bytearray(4)
 last_trigger : int = -1
 pcm_buffer = micropython.RingIO(4*16*10)
@@ -192,28 +193,28 @@ def run_test():
     peri = PeripheralCommunicationSPI(spi, spi_cs_n)
 
 
-    ctrl = peri.read32(REG_CTRL)
+    ctrl = peri.read32(REG_ENABLE)
     print('control', ctrl)
 
     # Set and check scale
-    clkp = peri.read32(REG_CLKP)
+    clkp = peri.read32(REG_PERIOD)
     scale_config = bytearray([0x00, 0x00, 0x00, 64])
-    peri.write32(REG_CLKP, scale_config)
+    peri.write32(REG_PERIOD, scale_config)
 
-    clkp = peri.read32(REG_CLKP)
+    clkp = peri.read32(REG_PERIOD)
     assert clkp == scale_config, (clkp, scale_config)
 
     #for i in range(10):
-    #    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x01]))
+    #    peri.write32(REG_ENABLE, bytearray([0x00, 0x00, 0x00, 0x01]))
     #    time.sleep(2.0)
-    #    peri.write32(REG_CTRL, bytearray([0x00, 0x00, 0x00, 0x00]))
+    #    peri.write32(REG_ENABLE, bytearray([0x00, 0x00, 0x00, 0x00]))
     #    time.sleep(2.0)
 
     # Enable the PDM clock
     print('enable clock')
     clock_config = bytearray([0x00, 0x00, 0x00, 0x01])
-    peri.write32(REG_CTRL, clock_config)
-    ctrl = peri.read32(REG_CTRL)
+    peri.write32(REG_ENABLE, clock_config)
+    ctrl = peri.read32(REG_ENABLE)
     assert ctrl == clock_config, (ctrl, clock_config)
 
     # Try to read PCM data as fast as we can with interrupt
@@ -222,7 +223,7 @@ def run_test():
         read_with_interrupt()
 
         # HACK: try to recover missing interrupt by doing a read
-        peri.read32(REG_PCMW)
+        peri.read32(REG_SAMPLE)
 
 
     samplerate = 16000
@@ -252,8 +253,8 @@ def read_pcm_samples_loop(peri, samples, interrupt):
 
     # pre-allocate buffers
     mem = memoryview(samples) 
-    cmd = bytearray([ 0b01000000, 0, 0, REG_PCMW ])
-    pcm = bytearray(4)
+    tx = bytearray([ 0b01000000, 0, 0, REG_SAMPLE, 0, 0, 0, 0 ])
+    rx = bytearray(8)
 
     # cache member references, avoids lookup
     # and we do not have the function call overhead
@@ -262,21 +263,14 @@ def read_pcm_samples_loop(peri, samples, interrupt):
 
     i = 0
     while i < n_samples:
-
-        ready = interrupt.value()
-        #print('r', ready)
+        ready = interrupt()
         if ready:
-            cs_n.value(0)
-            spi.write(cmd)
-            spi.readinto(pcm)
-            mem[i] = pcm[2]
-            i += 1
-            mem[i] = pcm[3]
-            i += 1
-            cs_n.value(1)
-
-            #time.sleep_us(1)
-
+            cs_n(0)
+            spi.write_readinto(tx, rx)
+            mem[i+1] = rx[6]
+            mem[i] = rx[7]
+            i += 2
+            cs_n(1)
 
 def start_peripheral():
 
