@@ -11,6 +11,9 @@ The PDM microphone peripheral lets TinyQV read audio data from a PDM microphone.
 The peripheral generates the neccesary clock for the microphone,
 and decodes the PDM signal into Pulse Code Modulation (PCM) words.
 
+![Spectrogram of "yosys" spoken audio recorded on TinyQV](./tinyqv-yosys-spectrogram-annot-300h.png).
+
+
 ## How it works
 
 The [PDM](https://en.wikipedia.org/wiki/Pulse-density_modulation) to PCM conversion is done using a [cascaded integrator-comb (CIC) filter](https://en.wikipedia.org/wiki/Cascaded_integrator%E2%80%93comb_filter).
