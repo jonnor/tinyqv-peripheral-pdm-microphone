@@ -29,6 +29,8 @@ The PDM clock is generated on all pins.
 So the TinyQV output mux for GPIO to peripherals should be used to control
 which external pins are used for PDM clock.
 
+![System diagram for TinyQV PDM microphone peripheral](./tinyqv_pdm_microphone_diagram.drawio.png)
+
 ## Register map
 
 | Address | Name    | Access | Description                                                         |
